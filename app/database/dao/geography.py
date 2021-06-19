@@ -266,6 +266,23 @@ class GeographyDao(BaseDao):
 
         return country
 
+    async def get_default_country(self) -> Union[Country, None]:
+        sql = 'SELECT id, created FROM countries WHERE name = $1;'
+
+        async with self.pool.acquire() as con:  # type: Connection
+            row = await con.fetchrow(sql, "Sverige")
+
+        country = Country()
+
+        if row is not None:
+            country.id = row["id"]
+            country.name = country
+            country.created = row["created"]
+        else:
+            return None
+
+        return country
+
     async def get_countries(self) -> list:
         sql = 'SELECT id, name, created FROM countries;'
 

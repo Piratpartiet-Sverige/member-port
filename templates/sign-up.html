@@ -19,66 +19,78 @@
                             <img src="{{ static_url('img/logo.svg') }}" >
                         </figure>
                         {% module xsrf_form_html() %}
-                        <form action="/kratos/self-service/registration/methods/password?flow={{ flow }}" method="post">
-                            {% for input in inputs %}
-                            {% if input.type == 'hidden' %}
-                                <input name="{{ input.name }}" type="hidden" value="{{ input.value }}" />
-                            {% elif input.name == 'traits.municipality' %}
-                                <div class="field">
-                                    <div class="control">
-                                        <div class="select is-large" style="width: 100%;">
-                                            <select 
-                                                id="{{ input.name }}"
-                                                name="{{ input.name }}"
-                                                style="width: 100%;"
-                                                data-value="{{ input.value }}">
-                                                <option disabled selected value>Välj din kommun</option>
-                                            </select>
-                                        </div>
+                        <form action="{{ action }}" method="{{ method }}">
+                            {% for node in nodes %}
+                            {% if node.attributes.name == 'csrf_token' %}
+                            <input name="{{ node.attributes.name }}" type="hidden" value="{{ node.attributes.value }}" />
+                            {% elif node.attributes.name == 'traits.municipality' %}
+                            <div class="field">
+                                <div class="control">
+                                    <div class="select is-large" style="width: 100%;">
+                                        <select 
+                                            id="{{ node.attributes.name }}"
+                                            name="{{ node.attributes.name }}"
+                                            style="width: 100%;"
+                                            data-value="{{ node.attributes.value if hasattr(node.attributes, 'value') else ''}}">
+                                            <option disabled selected value>Välj din kommun</option>
+                                        </select>
                                     </div>
                                 </div>
-                            {% elif input.name == 'traits.country' %}
-                                <div class="field">
-                                    <div class="control">
-                                        <div class="select is-large">
-                                            <select
-                                                id="{{ input.name }}"
-                                                name="{{ input.name }}"
-                                                onchange="updateMunicipalities()">
-                                                {% for country in countries %}
-                                                <option
-                                                    value="{{ country.name }}"
-                                                    {{ 'selected' if input.value == country.name else '' }}
-                                                    >{{ country.name }}</option>
-                                                {% end %}
-                                            </select>
-                                        </div>
+                            </div>
+                            {% elif node.attributes.name == 'traits.country' %}
+                            <div class="field">
+                                <div class="control">
+                                    <div class="select is-large">
+                                        <select
+                                            id="{{ node.attributes.name }}"
+                                            name="{{ node.attributes.name }}"
+                                            onchange="updateMunicipalities()">
+                                            {% for country in countries %}
+                                            <option
+                                                value="{{ country.name }}"
+                                                {{ 'selected' if (node.attributes.value if hasattr(node.attributes, 'value') else default_country) == country.name else '' }}
+                                                >{{ country.name }}</option>
+                                            {% end %}
+                                        </select>
                                     </div>
                                 </div>
+                            </div>
+                            {% elif node.attributes.name != 'method' %}
+                            <div class="field">
+                                <div class="control">
+                                    <input
+                                        name="{{ node.attributes.name }}"
+                                        class="input is-large"
+                                        type="{{ node.attributes.type }}"
+                                        placeholder="{{ placeholders[node.attributes.name] }}"
+                                        value="{{ node.attributes.value if hasattr(node.attributes, 'value') else '' }}"
+                                        />
+                                </div>
+                            </div>
                             {% else %}
-                                <div class="field">
-                                    <div class="control">
-                                        <input
-                                            name="{{ input.name }}"
-                                            class="input is-large"
-                                            type="{{ input.type }}"
-                                            placeholder="{{ placeholders[input.name] }}"
-                                            value="{{ input.value if input.value != None else '' }}"
-                                            />
-                                    </div>
-                                </div>
-                            {% end %}
-                        {% end %}
+                            <input name="method" type="hidden" value="{{ node.attributes.value }}"> 
                             <button type="submit" class="button is-block is-info is-large is-fullwidth">
-                                Sign up
+                                Registrera
                             </button>
+                            {% end %}
+                            {% for error in node.messages.value %}
+                            {% if error.type == 'error' %}
+                            <div class="notification is-danger">
+                                <button type="button" class="delete"></button>
+                                {{ error.text }}
+                            </div>
+                            {% end %}
+                            {% end %}
+                            {% end %}
                         </form>
                     </div>
-                    {% if error != "" %}
+                    {% for error in errors %}
+                    {% if error.type == 'error' %}
                     <div class="notification is-danger">
                         <button class="delete"></button>
-                        {{ error }}
+                        {{ error.text }}
                     </div>
+                    {% end %}
                     {% end %}
                     <p class="has-text-grey">
                         <a href="/auth/login">Logga in</a>

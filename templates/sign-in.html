@@ -18,28 +18,44 @@
                         <figure class="avatar">
                             <img src="{{ static_url('img/logo.svg') }}" >
                         </figure>
-                        <form action="/kratos/self-service/login/methods/password?flow={{ flow }}" method="post">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <form action="{{ action }}" method="{{ method }}">
+                            {% for node in nodes %}
+                            {% if node.attributes.type != "submit" %}
                             <div class="field">
                                 <div class="control">
-                                    <input name="identifier" class="input is-large" type="email" placeholder="E-mail" autofocus="">
+                                    <input
+                                        name="{{ node.attributes.name }}"
+                                        class="input is-large"
+                                        type="{{ node.attributes.type }}"
+                                        placeholder="{{ node.meta.label.text if hasattr(node.meta, 'label') else ''  }}"
+                                        value="{{  node.attributes.value if hasattr(node.attributes, 'value') else '' }}"
+                                    />
                                 </div>
                             </div>
-                            <div class="field">
-                                <div class="control">
-                                    <input name="password" class="input is-large" type="password" placeholder="Password">
-                                </div>
+                            {% for error in node.messages.value %}
+                            {% if error.type == 'error' %}
+                            <div class="notification is-danger">
+                                <button type="button" class="delete"></button>
+                                {{ error.text }}
                             </div>
+                            {% end %}
+                            {% end %}
+                            {% else %}
+                            <input type="hidden" name="{{ node.attributes.name }}" value="{{ node.attributes.value}}" >
                             <button type="submit" class="button is-block is-info is-large is-fullwidth">
-                                Sign in
+                                Logga in
                             </button>
+                            {% end %}
+                            {% end %}
                         </form>
                     </div>
-                    {% if error != "" %}
+                    {% for error in errors %}
+                    {% if error.type == 'error' %}
                     <div class="notification is-danger">
                         <button class="delete"></button>
-                        {{ error }}
+                        {{ error.text }}
                     </div>
+                    {% end %}
                     {% end %}
                     <p class="has-text-grey">
                         <a href="/auth/registration">Bli medlem</a> &nbsp;·&nbsp;
@@ -50,5 +66,4 @@
         </div>
     </section>
 </body>
-
 </html>

@@ -1,6 +1,7 @@
 import tornado.web
 import ory_kratos_client
 
+from ory_kratos_client.api import v0alpha1_api
 from ory_kratos_client.rest import ApiException
 from ory_kratos_client.configuration import Configuration
 
@@ -17,35 +18,32 @@ class VerifyHandler(BaseHandler):
         if (flow == ""):
             return self.redirect("http://127.0.0.1:8888/kratos/self-service/verification/browser")
 
-        configuration = Configuration()
-        configuration.host = "http://pirate-kratos:4434"
+        configuration = Configuration(
+            host="http://pirate-kratos:4433"
+        )
 
-        csrf_token = ""  # noqa: S105 # nosec
-        error = ""
+        cookie = self.request.headers['Cookie']
+        errors = []
+        nodes = []
         action = ""
+        method = ""
         state = ""
 
-        with ory_kratos_client.ApiClient(configuration, cookie="ory_kratos_session=" + self.session_hash + ";") as api_client:
-            api_instance = ory_kratos_client.PublicApi(api_client)
+        with ory_kratos_client.ApiClient(configuration) as api_client:
+            api_instance = v0alpha1_api.V0alpha1Api(api_client)
             try:
-                api_response = api_instance.get_self_service_verification_flow(flow)
-                csrf_token = api_response.methods['link'].config.fields[0].value
-
-                if api_response.methods['link'].config.messages is not None:
-                    error = api_response.methods['link'].config.messages[0].text
-                else:
-                    for field in api_response.methods['link'].config.fields:
-                        if field.messages is not None:
-                            error = field.messages[0].text
-                            break
-
-                state = api_response.state
-                action = api_response.methods['link'].config.action
+                api_response = api_instance.get_self_service_verification_flow(flow, cookie=cookie)
+                logger.debug(api_response)
+                errors = api_response.ui.messages.value if hasattr(api_response.ui, 'messages') else []
+                nodes = api_response.ui.nodes.value
+                action = api_response.ui.action
+                method = api_response.ui.method
+                state = api_response.state.value
             except ApiException as e:
-                logger.error("Exception when calling PublicApi->get_self_service_verification_flow: %s\n" % e)
+                logger.error("Exception when calling V0alpha1Api->get_self_service_verification_flow: %s\n" % e)
 
-        if error != "":
-            logger.error("Error: " + error)
+                if e.status == 410:
+                    return self.redirect("http://127.0.0.1:8888/kratos/self-service/verification/browser")
 
         dao = UsersDao(self.db)
         permissions_check = await dao.check_user_admin(self.current_user.user.id)
@@ -56,7 +54,8 @@ class VerifyHandler(BaseHandler):
             title="Verifiera",
             user=self.current_user.user,
             action=action,
-            error=error,
-            state=state,
-            csrf_token=csrf_token
+            method=method,
+            errors=errors,
+            nodes=nodes,
+            state=state
         )

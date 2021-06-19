@@ -56,6 +56,9 @@ class KratosHandler(RequestHandler):
         req = tornado.httpclient.HTTPRequest(url, method="POST", body=self.request.body,
                                              follow_redirects=False, headers=self.request.headers)
 
+        logger.debug(self.request.body)
+        logger.debug(self.request.headers)
+
         client = tornado.httpclient.AsyncHTTPClient()
         response = yield client.fetch(req, raise_error=False)
 

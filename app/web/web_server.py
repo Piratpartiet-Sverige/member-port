@@ -2,6 +2,7 @@ import asyncio
 import os.path
 import ssl
 import asyncpg
+import time
 import tornado.ioloop
 import tornado.web
 
@@ -31,6 +32,7 @@ from app.web.handlers.new_member import NewMemberHandler
 from app.web.handlers.profile import ProfileHandler
 from app.web.handlers.verify import VerifyHandler
 from tornado.platform.asyncio import AnyThreadEventLoopPolicy
+from typing import Union
 
 
 class WebAppOptions:
@@ -110,30 +112,10 @@ def configure_application(options: WebAppOptions):
     for plugin in plugins:
         handlers.append(plugin.get_handler())
 
+    db = None
+
     if options.test is False:
-        db = init_db(options)
-
-        try:
-            db = asyncio.get_event_loop().run_until_complete(db)
-        except Exception:
-            logger.critical(
-                """Error occured when trying to connect to database, check if host, name, username and password is correct in
-                   config/config.ini""",
-                exc_info=1
-            )
-            db = None
-
-        if db is not None:
-            logger.debug("Database connection initialized...")
-            asyncio.get_event_loop().run_until_complete(db_setup(db, handlers))
-            asyncio.get_event_loop().run_until_complete(first_setup(db, handlers))
-        else:
-            logger.error("Database connection failed")
-            logger.warning("Running without a database")
-            show_db_error(handlers)
-            db = None
-    else:
-        db = None
+        db = try_connect_to_database(options, handlers)
 
     webapp = tornado.web.Application(
         handlers,
@@ -173,7 +155,46 @@ def configure_application(options: WebAppOptions):
         return webapp
 
 
-def init_db(options: WebAppOptions):
+def try_connect_to_database(options: WebAppOptions, handlers: list) -> Union[asyncpg.pool.Pool, None]:
+    attempts = 3
+    db = None
+
+    while attempts > 0:
+        try:
+            pool_task = init_db(options)
+            db = asyncio.get_event_loop().run_until_complete(pool_task)
+            attempts = 0
+        except Exception:
+            logger.critical(
+                """Error occured when trying to connect to database, check if host, name, username and password is correct in
+                config/config.ini""",
+                exc_info=1
+            )
+
+            if db is not None:
+                asyncio.get_event_loop().run_until_complete(db.close())
+                db = None
+
+            attempts -= 1
+
+            if attempts > 0:
+                time.sleep(5)
+                logger.critical("Retrying database connection...")
+
+    if db is not None:
+        logger.debug("Database connection initialized...")
+        asyncio.get_event_loop().run_until_complete(db_setup(db, handlers))
+        asyncio.get_event_loop().run_until_complete(first_setup(db, handlers))
+    else:
+        logger.error("Database connection failed")
+        logger.warning("Running without a database")
+        show_db_error(handlers)
+        db = None
+
+    return db
+
+
+def init_db(options: WebAppOptions) -> asyncpg.pool.Pool:
     if options.db_hostname == "" and options.dbname == "":
         return None
 

@@ -1,3 +1,5 @@
+version: v0.7.1-alpha.1
+
 dsn: sqlite:///home/ory/sqlite/db.sqlite?_fk=true
 
 identity:
@@ -7,6 +9,20 @@ identity:
       url: file:///etc/pirate-config/bot.schema.json
 
 selfservice:
+  default_browser_return_url: http://127.0.0.1:8888/
+  whitelisted_return_urls:
+    - http://127.0.0.1:8888
+
+  methods:
+    password:
+      enabled: true
+    link:
+      enabled: true
+      config:
+        lifespan: 30m
+    oidc:
+      enabled: false
+
   flows:
     login:
       ui_url: http://127.0.0.1:8888/auth/login
@@ -14,13 +30,12 @@ selfservice:
       after:
         default_browser_return_url: http://127.0.0.1:8888/
         password:
-          default_browser_return_url: http://127.0.0.1:8888/
           hooks:
             - hook: revoke_active_sessions
-    
+
     logout:
       after:
-        default_browser_return_url: http://127.0.0.1:8888/
+        default_browser_return_url: http://127.0.0.1:8888/auth/login
 
     registration:
       ui_url: http://127.0.0.1:8888/auth/registration
@@ -47,25 +62,11 @@ selfservice:
     verification:
       enabled: true
       ui_url: http://127.0.0.1:8888/verify
-      lifespan: 1h
-      after:
-        default_browser_return_url: http://127.0.0.1:8888/
-
-  methods:
-    link:
-      enabled: true
-    password:
-      enabled: true
-    oidc:
-      enabled: false
-
-  default_browser_return_url: http://127.0.0.1:8888/
-  whitelisted_return_urls:
-    - http://127.0.0.1:8888
 
 log:
   level: debug
   format: text
+  leak_sensitive_values: true
 
 secrets:
   default:
@@ -78,13 +79,10 @@ serve:
     base_url: http://pirate-kratos:4434
 
 hashers:
-  argon2:
-    parallelism: 1
-    memory: 131072
-    iterations: 2
-    salt_length: 16
-    key_length: 16
+  bcrypt:
+    cost: 12
+  algorithm: bcrypt
 
 courier:
   smtp:
-    connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+    connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true&legacy_ssl=true

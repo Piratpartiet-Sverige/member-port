@@ -7,8 +7,11 @@
             <h1>Verifiera din e-post</h1>
         </div>
         <div class="box">
-            <form action="{{ action }}" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <form action="{{ action }}" method="{{ method }}">
+                {% for node in nodes %}
+                {% if node.attributes.name == "csrf_token" %}
+                <input type="hidden" name="csrf_token" value="{{ node.attributes.value }}">
+                {% elif node.attributes.name == "email" %}
                 <label class="label">
                     E-post
                     <span class="icon">
@@ -21,23 +24,42 @@
                         <input type="email" name="email" class="input" required value="{{ user.email }}">
                     </div>
                 </div>
+                {% elif node.attributes.name == "method" and state == "choose_method" %}
+                <input type="hidden" name="{{ node.attributes.name }}" value="{{ node.attributes.value }}">
                 <div class="field">
                     <div class="control">
-                        <button type="submit" class="button is-success is-fullwidth">Skicka om verifikationslänk</button>
+                        <button type="submit" class="button is-success is-fullwidth">Skicka verifikationslänk</button>
                     </div>
                 </div>
+                {% end %}
+                {% for error in node.messages.value %}
+                {% if error.type == "error" %}
+                <div class="notification is-danger">
+                    <button class="delete"></button>
+                    {{ error.text }}
+                </div>
+                {% end %}
+                {% end %}
+                {% end %}
             </form>
             <br>
-            {% if error != "" %}
+            {% for error in errors %}
+            {% if error.type == "error" %}
             <div class="notification is-danger">
                 <button class="delete"></button>
-                {{ error }}
+                {{ error.text }}
             </div>
             {% end %}
+            {% end %}
             {% if state == "sent_email" %}
-            <div class="notification is-success">
+            <div class="notification is-info">
                 <button class="delete"></button>
                 Verifikationslänk har skickats
+            </div>
+            {% elif state == "passed_challenge" %}
+            <div class="notification is-success">
+                <button class="delete"></button>
+                Mailadressen är verifierad!
             </div>
             {% end %}
         </div>

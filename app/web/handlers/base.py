@@ -1,5 +1,6 @@
 import ory_kratos_client
 
+from ory_kratos_client.api import v0alpha1_api
 from ory_kratos_client.rest import ApiException
 from ory_kratos_client.configuration import Configuration
 from typing import Union
@@ -45,16 +46,17 @@ class BaseHandler(RequestHandler):
         if session_hash is None:
             return None
 
-        configuration = Configuration()
-        configuration.host = "http://pirate-kratos:4433"
+        configuration = Configuration(
+            host="http://pirate-kratos:4433"
+        )
 
         api_response = None
         session = None
 
-        with ory_kratos_client.ApiClient(configuration, cookie="ory_kratos_session=" + session_hash + ";") as api_client:
-            api_instance = ory_kratos_client.PublicApi(api_client)
+        with ory_kratos_client.ApiClient(configuration) as api_client:
+            api_instance = v0alpha1_api.V0alpha1Api(api_client)
             try:
-                api_response = api_instance.whoami()
+                api_response = api_instance.to_session(cookie=session_hash)
                 session = Session()
                 session.id = UUID(api_response.id)
                 session.hash = session_hash
@@ -73,7 +75,6 @@ class BaseHandler(RequestHandler):
                 user.municipality = api_response.identity.traits["municipality"]
                 user.country = api_response.identity.traits["country"]
                 user.verified = api_response.identity.verifiable_addresses[0].verified
-
                 dao = UsersDao(self.db)
                 user_info = await dao.get_user_info(user.id)
 
@@ -86,9 +87,11 @@ class BaseHandler(RequestHandler):
 
                 session.user = user
                 logger.debug("Session user: " + str(user.id))
-
             except ApiException as e:
-                logger.error("Exception when calling PublicApi->whoami: %s\n" % e)
+                logger.error("Exception when calling V0alpha1Api->to_session: %s\n" % e)
+            except Exception as e:
+                logger.error(e)
+                session = Session()
 
         return session
 
@@ -103,6 +106,10 @@ class BaseHandler(RequestHandler):
     @property
     def session_hash(self) -> Union[str, None]:
         session_hash = self.get_cookie("ory_kratos_session")
+
+        if session_hash is not None:
+            session_hash = "ory_kratos_session=" + session_hash
+
         return session_hash
 
     def clear_session_cookie(self):

@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   pirate-kratos-migrate:
-    image: oryd/kratos:v0.5-sqlite
+    image: oryd/kratos:v0.7-sqlite
     environment:
       - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true&mode=rwc
       - SQA_OPT_OUT=true
@@ -69,6 +69,7 @@ services:
       - intranet
 
   worker:
+    image: member-port:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -81,7 +82,7 @@ services:
         type: bind
         source: ./app
         target: /app/app
-    command: celery -A app.queue worker --loglevel=INFO
+    command: celery -A app.tasks worker --loglevel=INFO
     depends_on:
       - member-port
       - rabbitmq
@@ -89,6 +90,7 @@ services:
       - intranet
 
   beat:
+    image: member-port:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -101,7 +103,7 @@ services:
         type: bind
         source: ./app
         target: /app/app
-    command: celery -A app.queue beat --loglevel=INFO
+    command: celery -A app.tasks beat --loglevel=INFO
     depends_on:
       - member-port
       - rabbitmq
@@ -116,6 +118,10 @@ services:
         source: rabbitmq
         target: /var/lib/rabbitmq
         read_only: false
+      -
+        type: bind
+        source: ./rabbitmq.conf
+        target: /etc/rabbitmq/rabbitmq.conf
     ports:
       - "4369:4369"
       - "5672:5672"
@@ -126,7 +132,7 @@ services:
   pirate-kratos:
     depends_on:
       - pirate-kratos-migrate
-    image: oryd/kratos:v0.5-sqlite
+    image: oryd/kratos:v0.7-sqlite
     ports:
       - "4433:4433" # public
       - "4434:4434" # admin
@@ -135,7 +141,7 @@ services:
       - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true&mode=rwc
       - SQA_OPT_OUT=true
     command:
-      serve -c /etc/pirate-config/kratos.yml --dev
+      serve -c /etc/pirate-config/kratos.yml --dev --watch-courier
     volumes:
       -
         type: volume

@@ -1,6 +1,7 @@
 import tornado.web
 import ory_kratos_client
 
+from ory_kratos_client.api import v0alpha1_api
 from ory_kratos_client.rest import ApiException
 from ory_kratos_client.configuration import Configuration
 from app.logger import logger
@@ -22,9 +23,10 @@ class MembersHandler(BaseHandler):
         configuration.host = "http://pirate-kratos:4434"
 
         with ory_kratos_client.ApiClient(configuration) as api_client:
-            api_instance = ory_kratos_client.AdminApi(api_client)
+            api_instance = v0alpha1_api.V0alpha1Api(api_client)
             try:
-                members = api_instance.list_identities()
+                api_response = api_instance.admin_list_identities(per_page=50, page=0)
+                members = api_response.value
             except ApiException as e:
                 logger.error("Exception when calling AdminApi->list_identities: %s\n" % e)
 

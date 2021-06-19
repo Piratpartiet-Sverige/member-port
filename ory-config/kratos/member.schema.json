@@ -1,5 +1,5 @@
 {
-  "$id": "member",
+  "$id": "member.schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Member",
   "type": "object",
@@ -11,9 +11,11 @@
           "type": "object",
           "properties": {
             "first": {
+              "title": "First Name",
               "type": "string"
             },
             "last": {
+              "title": "Last Name",
               "type": "string"
             }
           }
@@ -22,20 +24,25 @@
           "type": "object",
           "properties": {
             "street": {
+              "title": "Street",
               "type": "string"
             },
             "postal_code": {
+              "title": "Street",
               "type": "string"
             },
             "city": {
+              "title": "City",
               "type": "string"
             }
           }
         },
         "municipality": {
+          "title": "Municipality",
           "type": "string"
         },
         "country": {
+          "title": "Country",
           "type": "string"
         },
         "phone": {
@@ -72,11 +79,7 @@
         }
       },
       "required": [
-        "email",
-        "name",
-        "postal_address",
-        "municipality",
-        "country"
+        "email"
       ],
       "additionalProperties": false
     }

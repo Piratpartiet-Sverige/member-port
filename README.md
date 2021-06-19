@@ -1,6 +1,6 @@
 # MemberPort
 
-A membership management system, written in Python with the [Tornado web-framework](https://www.tornadoweb.org/en/stable/) and [ORY Kratos](https://www.ory.sh/kratos) as the authentication and identification handler.
+A membership management system, written in Python with the [Tornado web-framework](https://www.tornadoweb.org/en/stable/) and [Ory Kratos](https://www.ory.sh/kratos) as the authentication and identification handler.
 
 ## Deployment
 
